@@ -8,42 +8,46 @@ body {
     background:#1a1a1a;
     color:white;
     font-family:Arial, sans-serif;
-    text-align:center;
     display:flex;
-    flex-direction:column;
     height:100vh;
 }
 #log {
-    height:150px;
+    width:250px;
+    height:100%;
     overflow-y:auto;
     background:#111;
     padding:10px;
-    margin:5px 10px;
+    box-sizing:border-box;
     flex-shrink:0;
+}
+#main {
+    flex-grow:1;
+    display:flex;
+    flex-direction:column;
 }
 #map {
     flex-grow:1;
     position:relative;
-    width:100%;
     background:#2e3b2e;
+    margin:5px;
     overflow:hidden;
 }
 button {
-    padding:10px 20px;
+    padding:10px;
     margin:5px;
     font-size:16px;
     cursor:pointer;
 }
 .kingdom {
     position:absolute;
-    width:80px;
-    height:80px;
+    width:60px;
+    height:60px;
     border-radius:50%;
     display:flex;
     align-items:center;
     justify-content:center;
     cursor:pointer;
-    font-size:13px;
+    font-size:12px;
     text-align:center;
     padding:5px;
     border:2px solid black;
@@ -54,15 +58,18 @@ button {
 </head>
 <body>
 
-<h1>👑 Iron Crown</h1>
+<div id="log">
+    <h2>👑 Iron Crown</h2>
+    <h3>Battle Log</h3>
+</div>
 
-<h3>Battle Log</h3>
-<div id="log"></div>
-
-<button onclick="endTurn()">End Turn</button>
-<button onclick="resetGame()">Reset Game</button>
-
-<div id="map"></div>
+<div id="main">
+    <div>
+        <button onclick="endTurn()">End Turn</button>
+        <button onclick="resetGame()">Reset Game</button>
+    </div>
+    <div id="map"></div>
+</div>
 
 <script>
 let selectedKingdoms = [];
@@ -77,7 +84,7 @@ function generateMap() {
     for(let i=0;i<12;i++){
         kingdoms.push({
             id:i,
-            x:Math.random()*90,
+            x:Math.random()*80, // smaller to fit map
             y:Math.random()*80,
             troops:30+Math.floor(Math.random()*20),
             owner:i===0?"player":"enemy"
@@ -94,9 +101,8 @@ function drawMap(){
         div.style.top = k.y + "%";
         div.innerHTML = "🏰<br>" + k.troops;
 
-        // Highlight selected kingdoms
         if(selectedKingdoms.includes(k)){
-            div.style.boxShadow = "0 0 15px 3px yellow";
+            div.style.boxShadow = "0 0 12px 3px yellow";
         }
 
         div.onclick = () => selectKingdom(k);
@@ -106,7 +112,6 @@ function drawMap(){
 
 function selectKingdom(k){
     if(k.owner==="player"){
-        // Toggle selection
         if(selectedKingdoms.includes(k)){
             selectedKingdoms = selectedKingdoms.filter(kk => kk !== k);
             addLog("Deselected kingdom with " + k.troops + " troops.");
@@ -123,7 +128,6 @@ function selectKingdom(k){
 
 function attackMultiple(attackers, defender){
     let totalAttackPower = 0;
-
     attackers.forEach(attacker => {
         let attackRoll = (Math.random()*0.4 + 0.8);
         totalAttackPower += attacker.troops * attackRoll;
@@ -139,9 +143,8 @@ function attackMultiple(attackers, defender){
 
     if(totalAttackPower > defendPower){
         addLog("✅ You conquered the kingdom!");
-        let remainingAttackRatio = 0.6; 
         attackers.forEach(attacker => {
-            attacker.troops = Math.floor(attacker.troops * remainingAttackRatio);
+            attacker.troops = Math.floor(attacker.troops * 0.6);
         });
         defender.owner = "player";
         defender.troops = Math.floor(totalAttackPower * 0.5);
@@ -202,7 +205,7 @@ function checkWin(){
 function resetGame(){
     turn=1;
     selectedKingdoms=[];
-    log.innerHTML="";
+    log.innerHTML="<h2>👑 Iron Crown</h2><h3>Battle Log</h3>";
     generateMap();
     drawMap();
     addLog("Game Reset. New world generated!");
