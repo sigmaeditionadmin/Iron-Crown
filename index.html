@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Iron Crown</title>
+<style>
+body { margin:0; background:#1a1a1a; color:white; font-family:Arial; text-align:center; }
+#map { position:relative; width:100vw; height:80vh; background:#2e3b2e; }
+.kingdom {
+    position:absolute;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:12px;
+    text-align:center;
+    padding:5px;
+}
+.player { background:gold; color:black; }
+.enemy { background:crimson; }
+button { padding:10px 20px; margin:10px; font-size:16px; }
+#log { height:100px; overflow:auto; background:#111; padding:10px; }
+</style>
+</head>
+<body>
+
+<h1>👑 Iron Crown</h1>
+<button onclick="endTurn()">End Turn</button>
+
+<div id="map"></div>
+
+<h3>Battle Log</h3>
+<div id="log"></div>
+
+<script>
+let selected = null;
+let turn = 1;
+
+const map = document.getElementById("map");
+const log = document.getElementById("log");
+
+const kingdoms = [
+{ id:0, x:10, y:20, troops:50, owner:"player" },
+{ id:1, x:40, y:15, troops:40, owner:"enemy" },
+{ id:2, x:70, y:25, troops:35, owner:"enemy" },
+{ id:3, x:25, y:60, troops:30, owner:"enemy" },
+{ id:4, x:60, y:65, troops:45, owner:"enemy" }
+];
+
+function drawMap() {
+map.innerHTML="";
+kingdoms.forEach(k=>{
+    const div=document.createElement("div");
+    div.className="kingdom "+k.owner;
+    div.style.left=k.x+"%";
+    div.style.top=k.y+"%";
+    div.innerHTML="🏰<br>"+k.troops;
+    div.onclick=()=>selectKingdom(k);
+    map.appendChild(div);
+});
+}
+
+function selectKingdom(k){
+if(k.owner==="player"){
+    selected=k;
+    addLog("Selected your kingdom with "+k.troops+" troops.");
+}
+else if(selected){
+    attack(selected,k);
+}
+}
+
+function attack(attacker,defender){
+let attackRoll = (Math.random()*0.4+0.8);
+let defendRoll = (Math.random()*0.4+0.8);
+
+// underdog bonus
+if(defender.troops < attacker.troops){
+    defendRoll += 0.1;
+}
+
+let attackPower = attacker.troops * attackRoll;
+let defendPower = defender.troops * defendRoll;
+
+addLog("⚔ Battle! You:"+attackPower.toFixed(1)+" Enemy:"+defendPower.toFixed(1));
+
+if(attackPower > defendPower){
+    addLog("✅ You conquered the kingdom!");
+    attacker.troops = Math.floor(attacker.troops*0.6);
+    defender.owner="player";
+    defender.troops=Math.floor(attacker.troops*0.8);
+}
+else{
+    addLog("❌ You lost the battle!");
+    attacker.troops=Math.floor(attacker.troops*0.5);
+}
+selected=null;
+checkWin();
+drawMap();
+}
+
+function endTurn(){
+turn++;
+addLog("— Turn "+turn+" —");
+
+// growth
+kingdoms.forEach(k=>{
+    k.troops += 5;
+});
+
+// AI attacks randomly
+kingdoms.filter(k=>k.owner==="enemy").forEach(enemy=>{
+    let targets=kingdoms.filter(k=>k.owner==="player");
+    if(targets.length===0) return;
+    let target=targets[Math.floor(Math.random()*targets.length)];
+    if(Math.random()<0.3){
+        let attackPower=enemy.troops*(Math.random()*0.4+0.8);
+        let defendPower=target.troops*(Math.random()*0.4+0.8);
+
+        if(attackPower>defendPower){
+            enemy.troops=Math.floor(enemy.troops*0.6);
+            target.owner="enemy";
+            target.troops=Math.floor(enemy.troops*0.8);
+            addLog("💀 Enemy conquered one of your kingdoms!");
+        } else {
+            enemy.troops=Math.floor(enemy.troops*0.5);
+        }
+    }
+});
+
+checkWin();
+drawMap();
+}
+
+function checkWin(){
+let playerCount=kingdoms.filter(k=>k.owner==="player").length;
+let enemyCount=kingdoms.filter(k=>k.owner==="enemy").length;
+
+if(enemyCount===0){
+    alert("🏆 You conquered the world!");
+}
+if(playerCount===0){
+    alert("💀 Your kingdom has fallen!");
+}
+}
+
+function addLog(text){
+log.innerHTML += text+"<br>";
+log.scrollTop=log.scrollHeight;
+}
+
+drawMap();
+</script>
+
+</body>
+</html>
