@@ -71,6 +71,7 @@ body {
     background:white;
     transform-origin:0 0;
 }
+
 .spyArrow {
     background:gray;
 }
@@ -156,6 +157,11 @@ function drawMap(){
         div.style.left=k.x+"%";
         div.style.top=k.y+"%";
         div.innerHTML="🏰<br>"+k.troops;
+
+        if(selectedKingdoms.includes(k)){
+            div.style.boxShadow="0 0 15px 4px yellow";
+        }
+
         div.onclick=()=>handleClick(k,div);
         map.appendChild(div);
     });
@@ -166,9 +172,11 @@ function handleClick(k,div){
 
     if(k.owner==="player" || k.owner==="ally"){
         if(selectedKingdoms.includes(k)){
-            selectedKingdoms=selectedKingdoms.filter(x=>x!==k);
+            selectedKingdoms = selectedKingdoms.filter(x=>x!==k);
+            addLog("Deselected kingdom with "+k.troops+" troops.");
         } else {
             selectedKingdoms.push(k);
+            addLog("Selected kingdom with "+k.troops+" troops.");
         }
         drawMap();
         return;
@@ -200,7 +208,7 @@ function handleClick(k,div){
     div.appendChild(box);
 }
 
-/* ARROW */
+/* DRAW ARROW */
 function drawArrow(from,to,type="attack"){
     const arrow=document.createElement("div");
     arrow.className="arrow";
@@ -222,6 +230,7 @@ function drawArrow(from,to,type="attack"){
 
 /* PLAYER ATTACK */
 function playerAttack(attackers,defender){
+
     attacksThisTurn++;
     drawArrow(attackers[0],defender);
 
@@ -258,12 +267,10 @@ function sendSpy(from,target){
 
     if(Math.random()<0.6){
         addLog("🕵️ Spy success! Enemy has "+target.troops+" troops.");
-
         if(Math.random()<0.3){
             target.troops=Math.max(5,target.troops-10);
-            addLog("💣 Sabotage! Enemy lost troops.");
+            addLog("💣 Sabotage successful!");
         }
-
     } else {
         target.troops+=5;
         addLog("💀 Spy caught! Enemy strengthened.");
