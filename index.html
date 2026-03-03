@@ -3,68 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iron Crown 👑 - Click Stats Added</title>
+<title>Iron Crown 👑 - Enhanced</title>
 <style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-    height: 100vh;
-  }
-  #battleLog {
-    width: 250px;
-    background-color: #1e1e1e;
-    color: #fff;
-    padding: 10px;
-    overflow-y: auto;
-    box-sizing: border-box;
-  }
-  #gameContainer {
-    flex-grow: 1;
-    position: relative;
-    background-color: #3CB371;
-    overflow: hidden;
-  }
-  #statsBar {
-    width: 250px;
-    background-color: #333;
-    color: #fff;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-  canvas {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-  .kingdom {
-    width: 50px;
-    height: 50px;
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    cursor: pointer;
-    text-align: center;
-    border: 2px solid #000;
-    border-radius: 10px;
-    font-size: 20px;
-    text-shadow: 1px 1px 2px #000;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-  }
-  .player { background-color: yellow; color: #000; }
-  .ally { background-color: blue; color: #fff; }
-  .enemy { background-color: red; color: #fff; }
-  .retreated { background-color: grey; color: #fff; }
-  .actionButton {
-    position: absolute;
-    padding: 5px 10px;
-    background-color: #fff;
-    border: 1px solid #000;
-    cursor: pointer;
-    z-index: 10;
-  }
+  body { margin:0; font-family:Arial,sans-serif; display:flex; height:100vh; }
+  #battleLog { width:250px; background:#1e1e1e; color:#fff; padding:10px; overflow-y:auto; box-sizing:border-box; }
+  #gameContainer { flex-grow:1; position:relative; background-color:#3CB371; overflow:hidden; }
+  #statsBar { width:250px; background:#333; color:#fff; padding:10px; box-sizing:border-box; }
+  canvas { position:absolute; left:0; top:0; }
+  .kingdom { width:50px; height:50px; position:absolute; display:flex; align-items:center; justify-content:center;
+    font-weight:bold; cursor:pointer; text-align:center; border:2px solid #000; border-radius:10px; font-size:20px;
+    text-shadow:1px 1px 2px #000; box-shadow:0 0 5px rgba(0,0,0,0.5); }
+  .player { background-color:#32CD32; color:#000; } /* green */
+  .ally { background-color:blue; color:#fff; }
+  .enemy { background-color:red; color:#fff; }
+  .retreated { background-color:grey; color:#fff; }
+  .actionButton { position:absolute; padding:5px 10px; background:#fff; border:1px solid #000; cursor:pointer; z-index:10; }
 </style>
 </head>
 <body>
@@ -119,14 +72,7 @@ function placeKingdom(occupied){
 for(let i=1;i<=12;i++){
   let owner = i===1 ? 'player' : 'enemy';
   let pos = placeKingdom(kingdoms);
-  kingdoms.push({
-    id: i,
-    x: pos.x,
-    y: pos.y,
-    owner: owner,
-    troops: getRandomInt(30,48),
-    alliances: 0
-  });
+  kingdoms.push({id:i, x:pos.x, y:pos.y, owner:owner, troops:getRandomInt(30,48), alliances:0});
 }
 
 function drawArrows(){
@@ -143,10 +89,8 @@ function drawArrows(){
     let headlen = 12;
     ctx.beginPath();
     ctx.moveTo(a.toX+25, a.toY+25);
-    ctx.lineTo(a.toX+25 - headlen * Math.cos(angle - Math.PI/6), 
-               a.toY+25 - headlen * Math.sin(angle - Math.PI/6));
-    ctx.lineTo(a.toX+25 - headlen * Math.cos(angle + Math.PI/6), 
-               a.toY+25 - headlen * Math.sin(angle + Math.PI/6));
+    ctx.lineTo(a.toX+25 - headlen * Math.cos(angle - Math.PI/6), a.toY+25 - headlen * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(a.toX+25 - headlen * Math.cos(angle + Math.PI/6), a.toY+25 - headlen * Math.sin(angle + Math.PI/6));
     ctx.closePath();
     ctx.fillStyle = a.type==='ai' ? 'orange' : 'white';
     ctx.fill();
@@ -154,12 +98,10 @@ function drawArrows(){
 }
 
 function showKingdomStats(k){
-  statsContent.innerHTML = `
-    <b>Kingdom:</b> ${k.id}<br>
-    <b>Owner:</b> ${k.owner}<br>
-    <b>Troops:</b> ${k.troops}<br>
-    <b>Alliances:</b> ${k.alliances}
-  `;
+  statsContent.innerHTML = `<b>Kingdom:</b> ${k.id}<br>
+                            <b>Owner:</b> ${k.owner}<br>
+                            <b>Troops:</b> ${k.troops}<br>
+                            <b>Alliances:</b> ${k.alliances}`;
 }
 
 function renderKingdoms(){
@@ -175,10 +117,7 @@ function renderKingdoms(){
     div.style.left = k.x+'px';
     div.style.top = k.y+'px';
     div.innerHTML = k.owner==='retreated' ? '🏰<br>0' : `🏰<br>${k.troops}`;
-    div.addEventListener('click', ()=>{
-      showKingdomStats(k);
-      selectKingdom(k,div);
-    });
+    div.addEventListener('click', ()=>{ showKingdomStats(k); selectKingdom(k,div); });
     gameContainer.appendChild(div);
   });
   drawArrows();
@@ -186,6 +125,7 @@ function renderKingdoms(){
 
 function selectKingdom(k,element){
   document.querySelectorAll('.actionButton').forEach(b=>b.remove());
+
   if(k.owner==='player'||k.owner==='ally'){
     if(k.owner!=='retreated' && k.id!==1){
       const retreatBtn = document.createElement('button');
@@ -263,33 +203,25 @@ function aiTurn(){
   let possibleTargets = kingdoms.filter(k=>k.owner !== 'enemy' && k.troops > 0);
   if(aiKingdoms.length===0 || possibleTargets.length===0) return;
 
-  let attacks = 0;
-  const maxAttacks = 2;
+  const attacker = aiKingdoms[getRandomInt(0, aiKingdoms.length-1)];
+  possibleTargets.sort((a,b)=>a.troops - b.troops);
+  const target = possibleTargets[0];
 
-  while(attacks < maxAttacks && possibleTargets.length > 0){
-    const attacker = aiKingdoms[getRandomInt(0, aiKingdoms.length-1)];
-    possibleTargets.sort((a,b)=>a.troops - b.troops);
-    const target = possibleTargets[0];
+  arrows.push({fromX: attacker.x, fromY: attacker.y, toX: target.x, toY: target.y, type:'ai'});
+  drawArrows();
+  setTimeout(()=>{ arrows.shift(); drawArrows(); },1500);
 
-    arrows.push({fromX: attacker.x, fromY: attacker.y, toX: target.x, toY: target.y, type:'ai'});
-    drawArrows();
-    setTimeout(()=>{ arrows.shift(); drawArrows(); },1500);
+  const attackPower = Math.floor(attacker.troops * 0.5);
+  const defendPower = Math.floor(target.troops * 0.3);
+  target.troops -= attackPower;
+  attacker.troops -= defendPower;
 
-    const attackPower = Math.floor(attacker.troops * 0.5);
-    const defendPower = Math.floor(target.troops * 0.3);
-    target.troops -= attackPower;
-    attacker.troops -= defendPower;
-
-    if(target.troops <= 0){
-      target.owner='enemy';
-      target.troops = Math.max(5, Math.floor(attackPower * 0.7));
-      log(`AI conquered kingdom ${target.id}`);
-      possibleTargets.shift();
-    } else {
-      log(`AI attacked kingdom ${target.id}`);
-    }
-
-    attacks++;
+  if(target.troops <= 0){
+    target.owner='enemy';
+    target.troops = Math.max(5, Math.floor(attackPower * 0.7));
+    log(`AI conquered kingdom ${target.id}`);
+  } else {
+    log(`AI attacked kingdom ${target.id}`);
   }
 }
 
