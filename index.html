@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iron Crown 👑 - AI Attacks Everyone</title>
+<title>Iron Crown 👑 - AI Damage & Arrowheads</title>
 <style>
   body {
     margin: 0;
@@ -136,10 +136,11 @@ for(let i=1;i<=12;i++){
   });
 }
 
-// Draw arrows with >/< style arrowheads
+// Draw arrows with arrowhead
 function drawArrows(){
   ctx.clearRect(0,0,arrowCanvas.width,arrowCanvas.height);
   arrows.forEach(a=>{
+    // main line
     ctx.beginPath();
     ctx.moveTo(a.fromX+25, a.fromY+25);
     ctx.lineTo(a.toX+25, a.toY+25);
@@ -147,22 +148,18 @@ function drawArrows(){
     ctx.lineWidth = 3;
     ctx.stroke();
 
+    // arrowhead triangle
     let angle = Math.atan2(a.toY - a.fromY, a.toX - a.fromX);
-    let headlen = 10;
-
+    let headlen = 12;
     ctx.beginPath();
     ctx.moveTo(a.toX+25, a.toY+25);
     ctx.lineTo(a.toX+25 - headlen * Math.cos(angle - Math.PI/6), 
                a.toY+25 - headlen * Math.sin(angle - Math.PI/6));
-    ctx.strokeStyle = a.type==='ai' ? 'orange' : 'white';
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(a.toX+25, a.toY+25);
     ctx.lineTo(a.toX+25 - headlen * Math.cos(angle + Math.PI/6), 
                a.toY+25 - headlen * Math.sin(angle + Math.PI/6));
-    ctx.strokeStyle = a.type==='ai' ? 'orange' : 'white';
-    ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle = a.type==='ai' ? 'orange' : 'white';
+    ctx.fill();
   });
 }
 
@@ -273,10 +270,10 @@ function attackKingdom(k){
   if(attacksThisTurn>=2) endTurn();
 }
 
-// AI attacks anyone who is not itself
+// AI attacks any non-AI kingdom and deals damage
 function aiTurn(){
   const aiKingdoms = kingdoms.filter(k=>k.owner==='enemy');
-  let possibleTargets = kingdoms.filter(k => k.owner !== 'enemy' && k.troops > 0);
+  let possibleTargets = kingdoms.filter(k=>k.owner !== 'enemy' && k.troops > 0);
   if(aiKingdoms.length===0 || possibleTargets.length===0) return;
 
   let attacks = 0;
@@ -291,15 +288,21 @@ function aiTurn(){
     drawArrows();
     setTimeout(()=>{ arrows.shift(); drawArrows(); },1500);
 
-    const successChance = attacker.troops / (attacker.troops + target.troops);
-    if(Math.random() < successChance){
-      const conquered = target.troops;
+    // Calculate damage
+    const attackPower = Math.floor(attacker.troops * 0.5);
+    const defendPower = Math.floor(target.troops * 0.3);
+    target.troops -= attackPower;
+    attacker.troops -= defendPower;
+
+    if(target.troops <= 0){
       target.owner='enemy';
-      log(`AI conquered kingdom ${target.id} (AI troops: ${attacker.troops}, Target troops: ${conquered})`);
+      target.troops = Math.max(5, Math.floor(attackPower * 0.7));
+      log(`AI conquered kingdom ${target.id} (Damage: ${attackPower})`);
       possibleTargets.shift();
     } else {
-      log(`AI attack failed on kingdom ${target.id} (AI troops: ${attacker.troops}, Target troops: ${target.troops})`);
+      log(`AI attacked kingdom ${target.id} (Damage: ${attackPower}, Target left: ${target.troops})`);
     }
+
     attacks++;
   }
 }
