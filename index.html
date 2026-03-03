@@ -5,10 +5,10 @@
 <style>
 body{
   margin:0;
-  background:#0f0f0f;
   overflow:hidden;
   font-family:sans-serif;
   color:white;
+  background:#1b5e20; /* GREEN MAP BACK */
 }
 
 #log{
@@ -76,25 +76,22 @@ function draw(){
     ctx.beginPath();
     ctx.arc(k.x,k.y,35,0,Math.PI*2);
 
-    if(k.owner==="player") ctx.fillStyle="#1db954";   // bright green
-    else if(k.owner==="enemy") ctx.fillStyle="#555";  // darker gray
-    else ctx.fillStyle="#3498db";                     // blue ally
+    if(k.owner==="player") ctx.fillStyle="lime";
+    else if(k.owner==="enemy") ctx.fillStyle="gray";
+    else ctx.fillStyle="blue";
 
     ctx.fill();
-
-    ctx.strokeStyle="#000";
+    ctx.strokeStyle="black";
     ctx.lineWidth=3;
     ctx.stroke();
 
-    // troops number
     ctx.fillStyle="white";
     ctx.font="bold 16px sans-serif";
     ctx.textAlign="center";
     ctx.fillText(k.troops,k.x,k.y+5);
 
-    // kingdom name under circle
     ctx.font="14px sans-serif";
-    ctx.fillStyle="#ccc";
+    ctx.fillStyle="#eee";
     ctx.fillText(k.name,k.x,k.y+55);
   }
 
@@ -112,7 +109,6 @@ function drawArrows(){
     ctx.lineTo(a.to.x,a.to.y);
     ctx.stroke();
 
-    // arrowhead
     const angle = Math.atan2(a.to.y-a.from.y, a.to.x-a.from.x);
     const size = 14;
 
