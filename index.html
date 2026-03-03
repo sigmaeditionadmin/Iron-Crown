@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iron Crown 👑 - Fixed Map & Retreat</title>
+<title>Iron Crown 👑 - Retreat to Home</title>
 <style>
   body {
     margin: 0;
@@ -22,7 +22,7 @@
   #gameContainer {
     flex-grow: 1;
     position: relative;
-    background-color: #3CB371; /* green map */
+    background-color: #3CB371;
     overflow: hidden;
   }
   #statsBar {
@@ -56,6 +56,7 @@
   .player { background-color: yellow; color: #000; }
   .ally { background-color: blue; color: #fff; }
   .enemy { background-color: red; color: #fff; }
+  .retreated { background-color: grey; color: #fff; }
   .actionButton {
     position: absolute;
     padding: 5px 10px;
@@ -80,7 +81,7 @@ const arrowCanvas = document.getElementById('arrowCanvas');
 const statsContent = document.getElementById('statsContent');
 const ctx = arrowCanvas.getContext('2d');
 
-let containerWidth = window.innerWidth - 500; // 250 for log + 250 for stats
+let containerWidth = window.innerWidth - 500; // battle log + stats bar
 let containerHeight = window.innerHeight;
 
 arrowCanvas.width = containerWidth;
@@ -103,6 +104,7 @@ function log(message){
   battleLog.scrollTop = battleLog.scrollHeight;
 }
 
+// Kingdoms
 let kingdoms = [];
 let currentTurn = 'player';
 let attacksThisTurn = 0;
@@ -110,7 +112,7 @@ let maxAlliances = 2;
 let allianceRequested = false;
 let arrows = [];
 
-// Place kingdoms avoiding overlap
+// Place kingdom avoiding overlap
 function placeKingdom(occupied){
   let x,y,valid=false;
   while(!valid){
@@ -118,13 +120,13 @@ function placeKingdom(occupied){
     y = getRandomInt(50, containerHeight - 50);
     valid = true;
     for(let k of occupied){
-      if(Math.hypot(k.x-x, k.y-y) < 60){ valid=false; break; }
+      if(Math.hypot(k.x-x,k.y-y)<60){ valid=false; break; }
     }
   }
   return {x,y};
 }
 
-// Generate kingdoms
+// Generate 12 kingdoms
 for(let i=1;i<=12;i++){
   let owner = i===1 ? 'player' : 'enemy';
   let pos = placeKingdom(kingdoms);
@@ -177,9 +179,14 @@ function renderKingdoms(){
   gameContainer.querySelectorAll('.kingdom').forEach(k=>k.remove());
   kingdoms.forEach(k=>{
     const div = document.createElement('div');
-    div.className = `kingdom ${k.owner}`;
-    div.style.left = k.x + 'px';
-    div.style.top = k.y + 'px';
+    div.className='kingdom';
+    if(k.owner==='player') div.classList.add('player');
+    else if(k.owner==='ally') div.classList.add('ally');
+    else if(k.owner==='enemy') div.classList.add('enemy');
+    else if(k.owner==='retreated') div.classList.add('retreated');
+
+    div.style.left = k.x+'px';
+    div.style.top = k.y+'px';
     div.innerHTML = `🏰<br>${k.troops}`;
     div.addEventListener('click', ()=>selectKingdom(k,div));
     gameContainer.appendChild(div);
@@ -190,17 +197,15 @@ function renderKingdoms(){
 
 function selectKingdom(k,element){
   document.querySelectorAll('.actionButton').forEach(b=>b.remove());
-  if(currentTurn !== 'player') return;
+  if(currentTurn!=='player') return;
 
-  // Player or ally kingdom
-  if(k.owner==='player' || k.owner==='ally'){
-    log(`Selected kingdom ${k.id}`);
-    if(k.id!==1){
+  if(k.owner==='player'||k.owner==='ally'){
+    if(k.owner!=='retreated' && k.id!==1){ // can retreat
       const retreatBtn = document.createElement('button');
-      retreatBtn.className = 'actionButton';
-      retreatBtn.style.left = k.x + 'px';
-      retreatBtn.style.top = (k.y-60) + 'px';
-      retreatBtn.textContent = 'Retreat Home';
+      retreatBtn.className='actionButton';
+      retreatBtn.style.left = k.x+'px';
+      retreatBtn.style.top = (k.y-60)+'px';
+      retreatBtn.textContent='Retreat Home';
       retreatBtn.onclick = ()=>retreatKingdom(k);
       gameContainer.appendChild(retreatBtn);
     }
@@ -208,31 +213,34 @@ function selectKingdom(k,element){
   }
 
   // Enemy kingdom
-  if(!allianceRequested && kingdoms.filter(kk=>kk.owner==='ally').length < maxAlliances){
+  if(!allianceRequested && kingdoms.filter(kk=>kk.owner==='ally').length<maxAlliances){
     const allianceBtn = document.createElement('button');
-    allianceBtn.className = 'actionButton';
-    allianceBtn.style.left = k.x + 'px';
-    allianceBtn.style.top = (k.y-30) + 'px';
-    allianceBtn.textContent = 'Alliance';
+    allianceBtn.className='actionButton';
+    allianceBtn.style.left = k.x+'px';
+    allianceBtn.style.top = (k.y-30)+'px';
+    allianceBtn.textContent='Alliance';
     allianceBtn.onclick = ()=>requestAlliance(k);
     gameContainer.appendChild(allianceBtn);
   }
 
-  const attackBtn = document.createElement('button');
-  attackBtn.className = 'actionButton';
-  attackBtn.style.left = k.x + 'px';
-  attackBtn.style.top = (k.y-60) + 'px';
-  attackBtn.textContent = 'Attack';
+  const attackBtn=document.createElement('button');
+  attackBtn.className='actionButton';
+  attackBtn.style.left = k.x+'px';
+  attackBtn.style.top = (k.y-60)+'px';
+  attackBtn.textContent='Attack';
   attackBtn.onclick = ()=>attackKingdom(k);
   gameContainer.appendChild(attackBtn);
 }
 
 function retreatKingdom(k){
   const home = kingdoms.find(h=>h.id===1);
+  // Transfer troops to home kingdom
+  home.troops += k.troops;
+  k.troops = 0;
+  k.owner = 'retreated';
   k.x = home.x;
   k.y = home.y;
-  // No troops lost
-  log(`Kingdom ${k.id} retreated to home kingdom without losing troops.`);
+  log(`Kingdom ${k.id} retreated to home kingdom. Troops added to home.`);
   renderKingdoms();
 }
 
@@ -248,8 +256,8 @@ function attackKingdom(k){
   const attackers = kingdoms.filter(kk=>kk.owner==='player'||kk.owner==='ally');
   const fromKingdom = attackers[0];
   arrows.push({fromX:fromKingdom.x, fromY:fromKingdom.y, toX:k.x, toY:k.y});
-  setTimeout(()=>{ arrows.shift(); drawArrows(); }, 1000);
-  const success = Math.random() < (attackers.length / (attackers.length+1));
+  setTimeout(()=>{ arrows.shift(); drawArrows(); },1000);
+  const success = Math.random() < (attackers.length/(attackers.length+1));
   if(success){ k.owner='player'; k.troops = Math.max(10,getRandomInt(30,48)); log(`Attack successful! You conquered kingdom ${k.id}`); }
   else log(`Attack failed on kingdom ${k.id}`);
   attacksThisTurn++;
@@ -261,7 +269,7 @@ function aiTurn(){
   const aiKingdoms = kingdoms.filter(k=>k.owner==='enemy');
   if(aiKingdoms.length===0) return;
   const target = aiKingdoms[getRandomInt(0,aiKingdoms.length-1)];
-  const success = Math.random() < 0.5;
+  const success = Math.random()<0.5;
   if(success){
     const playerKingdoms = kingdoms.filter(k=>k.owner==='player');
     if(playerKingdoms.length>0){
@@ -273,15 +281,16 @@ function aiTurn(){
 }
 
 function endTurn(){
-  attacksThisTurn = 0;
-  allianceRequested = false;
-  currentTurn = currentTurn==='player'?'ai':'player';
+  attacksThisTurn=0;
+  allianceRequested=false;
+  currentTurn=currentTurn==='player'?'ai':'player';
   log(`Turn ended. Now it's ${currentTurn}'s turn.`);
   if(currentTurn==='ai'){ aiTurn(); currentTurn='player'; log('Your turn.'); renderKingdoms(); }
 }
 
 // Initial render
 renderKingdoms();
+
 </script>
 </body>
 </html>
