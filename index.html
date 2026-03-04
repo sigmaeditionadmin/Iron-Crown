@@ -61,12 +61,21 @@ button:hover {
     height: 200px;
     overflow-y: auto;
     font-size: 12px;
+    margin-bottom: 10px;
+}
+
+#statsPanel {
+    background: #0c0c0c;
+    padding: 10px;
+    font-size: 13px;
+    border: 1px solid #333;
 }
 </style>
 </head>
 <body>
 
 <div id="gameContainer">
+
 <div id="map"></div>
 
 <div id="sidePanel">
@@ -88,7 +97,11 @@ button:hover {
 
     <h3>Battle Log</h3>
     <div id="log"></div>
+
+    <h3>📊 Global Stats</h3>
+    <div id="statsPanel"></div>
 </div>
+
 </div>
 
 <script>
@@ -109,9 +122,7 @@ let countries = {
 let geoLayer;
 
 function getColor(owner) {
-    if (owner === "player") return "green";
-    if (owner === "ai") return "red";
-    return "#666";
+    return owner === "player" ? "green" : "red";
 }
 
 function log(msg) {
@@ -140,9 +151,7 @@ function refreshMap() {
 fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
 .then(res => res.json())
 .then(data => {
-    geoLayer = L.geoJSON(data, {
-        style: style
-    }).addTo(map);
+    geoLayer = L.geoJSON(data, { style: style }).addTo(map);
 });
 
 function populateDropdowns() {
@@ -159,6 +168,33 @@ function populateDropdowns() {
             targetSel.innerHTML += `<option value="${name}">${name}</option>`;
         }
     }
+}
+
+function updateStats() {
+    let yourCountries = 0;
+    let yourInfantry = 0;
+    let yourTanks = 0;
+    let aiCountries = 0;
+
+    for (let name in countries) {
+        if (countries[name].owner === "player") {
+            yourCountries++;
+            yourInfantry += countries[name].infantry;
+            yourTanks += countries[name].tanks;
+        } else {
+            aiCountries++;
+        }
+    }
+
+    let totalPower = yourInfantry + yourTanks * 3;
+
+    document.getElementById("statsPanel").innerHTML = `
+        <b>Your Countries:</b> ${yourCountries}<br>
+        <b>Your Infantry:</b> ${yourInfantry}<br>
+        <b>Your Tanks:</b> ${yourTanks}<br>
+        <b>Total Power:</b> ${totalPower}<br>
+        <b>AI Countries Left:</b> ${aiCountries}
+    `;
 }
 
 function launchAttack() {
@@ -194,9 +230,11 @@ function launchAttack() {
 
     populateDropdowns();
     refreshMap();
+    updateStats();
 }
 
 populateDropdowns();
+updateStats();
 </script>
 
 </body>
