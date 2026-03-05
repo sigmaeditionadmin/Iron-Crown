@@ -55,13 +55,14 @@ padding:10px;
 margin-bottom:20px;
 }
 
-input{
-width:60px;
+select,input{
+width:100%;
+margin-top:5px;
 }
 
 button{
-margin-top:5px;
-cursor:pointer;
+margin-top:6px;
+width:100%;
 }
 
 #log{
@@ -82,42 +83,50 @@ font-size:12px;
 <div id="panel">
 
 <div id="tabs">
-<div class="tab active" onclick="openTab('units')">Units</div>
-<div class="tab" onclick="openTab('missiles')">Missiles</div>
-<div class="tab" onclick="openTab('nukes')">Nukes</div>
+<div class="tab active" onclick="openTab('units',event)">Units</div>
+<div class="tab" onclick="openTab('missiles',event)">Missiles</div>
+<div class="tab" onclick="openTab('nukes',event)">Nukes</div>
 </div>
 
 <div id="panelContent">
 
-<div id="unitsTab" class="section">
+<div class="section">
 
-<h3>Send Troops</h3>
-Amount: <input id="troopAmount" type="number" value="10"><br>
-<button onclick="sendUnits('troops')">Send</button>
+<h3>Origin</h3>
+<select id="originSelect"></select>
 
-<h3>Send Planes ✈️</h3>
-Amount: <input id="planeAmount" type="number" value="5"><br>
-<button onclick="sendUnits('planes')">Send</button>
-
-<h3>Send Ships 🚢</h3>
-Amount: <input id="shipAmount" type="number" value="5"><br>
-<button onclick="sendUnits('ships')">Send</button>
+<h3>Target</h3>
+<select id="targetSelect"></select>
 
 </div>
 
-<div id="missilesTab" class="section" style="display:none">
+<div id="unitsTab">
 
-<h3>Launch Missile 🚀</h3>
-Damage: 20<br>
-<button onclick="launchMissile()">Launch</button>
+<h3>Troops</h3>
+<input id="troopAmount" type="number" value="10">
+<button onclick="sendUnits('troops')">Send Troops</button>
+
+<h3>Planes ✈️</h3>
+<input id="planeAmount" type="number" value="5">
+<button onclick="sendUnits('planes')">Send Planes</button>
+
+<h3>Ships 🚢</h3>
+<input id="shipAmount" type="number" value="5">
+<button onclick="sendUnits('ships')">Send Ships</button>
 
 </div>
 
-<div id="nukesTab" class="section" style="display:none">
+<div id="missilesTab" style="display:none">
 
-<h3>Launch Nuke ☢️</h3>
-Massive damage<br>
-<button onclick="launchNuke()">Launch</button>
+<h3>Missile Strike 🚀</h3>
+<button onclick="launchMissile()">Launch Missile</button>
+
+</div>
+
+<div id="nukesTab" style="display:none">
+
+<h3>Nuclear Strike ☢️</h3>
+<button onclick="launchNuke()">Launch Nuke</button>
 
 </div>
 
@@ -137,9 +146,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 maxZoom:6
 }).addTo(map);
 
-let selectedOrigin=null;
-let selectedTarget=null;
-
 let log=document.getElementById("log");
 
 function addLog(text){
@@ -147,20 +153,35 @@ log.innerHTML+="<div>"+text+"</div>";
 log.scrollTop=log.scrollHeight;
 }
 
-map.on("click",function(e){
+const countries={
 
-if(!selectedOrigin){
-selectedOrigin=e.latlng;
-addLog("Origin selected");
+USA:[38,-97],
+Brazil:[-10,-55],
+UK:[54,-2],
+India:[21,78],
+Japan:[36,138],
+Australia:[-25,133]
+
+};
+
+const originSelect=document.getElementById("originSelect");
+const targetSelect=document.getElementById("targetSelect");
+
+for(let c in countries){
+
+let o=document.createElement("option");
+o.value=c;
+o.text=c;
+originSelect.appendChild(o);
+
+let t=document.createElement("option");
+t.value=c;
+t.text=c;
+targetSelect.appendChild(t);
+
 }
-else{
-selectedTarget=e.latlng;
-addLog("Target selected");
-}
 
-});
-
-function openTab(name){
+function openTab(name,event){
 
 document.getElementById("unitsTab").style.display="none";
 document.getElementById("missilesTab").style.display="none";
@@ -175,10 +196,8 @@ event.target.classList.add("active");
 
 function sendUnits(type){
 
-if(!selectedOrigin||!selectedTarget){
-addLog("Select origin and target");
-return;
-}
+let origin=countries[originSelect.value];
+let target=countries[targetSelect.value];
 
 let amount=0;
 
@@ -186,30 +205,18 @@ if(type==="troops") amount=document.getElementById("troopAmount").value;
 if(type==="planes") amount=document.getElementById("planeAmount").value;
 if(type==="ships") amount=document.getElementById("shipAmount").value;
 
-if(type==="ships"){
-
-if(isLand(selectedOrigin)||isLand(selectedTarget)){
-addLog("Ships must start and end in water!");
-return;
-}
+animateAttack(type,amount,origin,target);
 
 }
 
-animateAttack(type,amount);
-
-selectedOrigin=null;
-selectedTarget=null;
-
-}
-
-function animateAttack(type,amount){
+function animateAttack(type,amount,origin,target){
 
 let icon="⚔️";
 
 if(type==="planes") icon="✈️";
 if(type==="ships") icon="🚢";
 
-let marker=L.marker(selectedOrigin,{
+let marker=L.marker(origin,{
 icon:L.divIcon({
 html:icon,
 className:"",
@@ -217,24 +224,18 @@ iconSize:[20,20]
 })
 }).addTo(map);
 
-let steps=60;
+let steps=80;
 let i=0;
 
-let latStep=(selectedTarget.lat-selectedOrigin.lat)/steps;
-let lngStep=(selectedTarget.lng-selectedOrigin.lng)/steps;
+let latStep=(target[0]-origin[0])/steps;
+let lngStep=(target[1]-origin[1])/steps;
 
 let move=setInterval(()=>{
 
 i++;
 
-let lat=selectedOrigin.lat+latStep*i;
-let lng=selectedOrigin.lng+lngStep*i;
-
-if(type==="ships" && isLand({lat:lat,lng:lng})){
-addLog("Ship reached shore");
-clearInterval(move);
-return;
-}
+let lat=origin[0]+latStep*i;
+let lng=origin[1]+lngStep*i;
 
 marker.setLatLng([lat,lng]);
 
@@ -244,22 +245,19 @@ clearInterval(move);
 
 marker.remove();
 
-addLog(type+" attacked with "+amount);
+addLog(type+" attacked "+targetSelect.value+" with "+amount);
 
 }
 
-},50);
+},40);
 
 }
 
 function launchMissile(){
 
-if(!selectedTarget){
-addLog("Select target");
-return;
-}
+let target=countries[targetSelect.value];
 
-L.marker(selectedTarget,{
+L.marker(target,{
 icon:L.divIcon({
 html:"🚀",
 className:"",
@@ -267,35 +265,20 @@ iconSize:[20,20]
 })
 }).addTo(map);
 
-addLog("Missile launched!");
-
-selectedTarget=null;
+addLog("Missile launched at "+targetSelect.value);
 
 }
 
 function launchNuke(){
 
-if(!selectedTarget){
-addLog("Select target");
-return;
-}
+let target=countries[targetSelect.value];
 
-L.circle(selectedTarget,{
-radius:500000,
+L.circle(target,{
+radius:600000,
 color:"red"
 }).addTo(map);
 
-addLog("NUKE DETONATED ☢️");
-
-selectedTarget=null;
-
-}
-
-function isLand(coord){
-
-if(coord.lat>60 || coord.lat<-60) return true;
-
-return false;
+addLog("NUKE DETONATED on "+targetSelect.value+" ☢️");
 
 }
 
