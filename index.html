@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aircraft Simulator - Plane Mesh</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3D Plane Simulator — Real Model!</title>
 <style>
   body { margin: 0; overflow: hidden; background: #87CEEB; }
-  canvas { display: block; }
   #hud {
     position: absolute;
     top: 10px;
@@ -21,11 +20,13 @@
 </head>
 <body>
 <div id="hud">Speed: 0 | Altitude: 0</div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
-<script>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
 let scene, camera, renderer;
-let plane, planeVelocity = 0;
+let planeModel, planeVelocity = 0;
 let planePitch = 0, planeRoll = 0;
 let keys = {};
 let clock = new THREE.Clock();
@@ -34,50 +35,21 @@ init();
 animate();
 
 function init() {
-  // Scene
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB);
 
-  // Camera (cockpit view)
+  // Camera
   camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Lighting
   const ambient = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambient);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.6);
-  directional.position.set(5, 10, 7);
-  scene.add(directional);
-
-  // Plane (simple mesh)
-  plane = new THREE.Group();
-
-  // Fuselage
-  const fuselageGeo = new THREE.CylinderGeometry(0.2, 0.2, 2, 16);
-  const fuselageMat = new THREE.MeshStandardMaterial({color: 0xff0000});
-  const fuselage = new THREE.Mesh(fuselageGeo, fuselageMat);
-  fuselage.rotation.z = Math.PI/2;
-  plane.add(fuselage);
-
-  // Wings
-  const wingGeo = new THREE.BoxGeometry(1.5, 0.05, 0.5);
-  const wingMat = new THREE.MeshStandardMaterial({color: 0x0000ff});
-  const wing = new THREE.Mesh(wingGeo, wingMat);
-  wing.position.set(0,0,0);
-  plane.add(wing);
-
-  // Tail
-  const tailGeo = new THREE.BoxGeometry(0.5, 0.05, 0.3);
-  const tailMat = new THREE.MeshStandardMaterial({color: 0x00ff00});
-  const tail = new THREE.Mesh(tailGeo, tailMat);
-  tail.position.set(-1,0,0);
-  plane.add(tail);
-
-  plane.rotation.x = Math.PI/2; // point forward
-  scene.add(plane);
+  const direct = new THREE.DirectionalLight(0xffffff, 0.6);
+  direct.position.set(5,10,7);
+  scene.add(direct);
 
   // Ground
   const groundGeo = new THREE.PlaneGeometry(500, 500, 10, 10);
@@ -86,19 +58,24 @@ function init() {
   ground.rotation.x = -Math.PI/2;
   scene.add(ground);
 
-  // Skybox (simple color)
-  scene.background = new THREE.Color(0x87CEEB);
+  // Load real airplane model
+  const loader = new THREE.GLTFLoader();
+  const modelURL = 'https://cdn.filer.dev/3d-model/2243156-airplane-n.glb'; // free plane model :contentReference[oaicite:1]{index=1}
+  loader.load(modelURL, (gltf) => {
+    planeModel = gltf.scene;
+    planeModel.scale.set(1.5,1.5,1.5);
+    scene.add(planeModel);
+  });
 
-  // Window resize
+  // Controls
+  window.addEventListener('keydown', (e) => keys[e.code] = true);
+  window.addEventListener('keyup', (e) => keys[e.code] = false);
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
-  // Keyboard
-  window.addEventListener('keydown', (e) => { keys[e.code] = true; });
-  window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 }
 
 function animate() {
@@ -113,51 +90,41 @@ function animate() {
 }
 
 function handleControls(delta) {
-  const throttleSpeed = 20;
-  const pitchSpeed = Math.PI; // rad/s
-  const rollSpeed = Math.PI; // rad/s
+  if (!planeModel) return;
 
-  // Throttle
+  const throttleSpeed = 20;
+  const pitchSpeed = Math.PI;
+  const rollSpeed = Math.PI;
+
   if(keys['KeyW']) planeVelocity += throttleSpeed * delta;
   if(keys['KeyS']) planeVelocity -= throttleSpeed * delta;
   planeVelocity = Math.max(0, planeVelocity);
 
-  // Pitch
   if(keys['ArrowUp']) planePitch += pitchSpeed * delta;
   if(keys['ArrowDown']) planePitch -= pitchSpeed * delta;
-
-  // Roll
   if(keys['KeyA']) planeRoll += rollSpeed * delta;
   if(keys['KeyD']) planeRoll -= rollSpeed * delta;
 
-  // Apply rotation
-  plane.rotation.z = planeRoll;
-  plane.rotation.x = Math.PI/2 + planePitch;
+  planeModel.rotation.z = planeRoll;
+  planeModel.rotation.x = planePitch;
 
-  // Move forward along local plane direction
-  const forward = new THREE.Vector3(1, 0, 0);
-  forward.applyEuler(plane.rotation);
-  plane.position.add(forward.multiplyScalar(planeVelocity * delta));
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(planeModel.quaternion);
+  planeModel.position.addScaledVector(dir, planeVelocity * delta);
 }
 
 function updateCamera() {
-  // Cockpit camera: slightly behind nose
-  const offset = new THREE.Vector3(-0.5, 0.2, 0);
-  offset.applyEuler(plane.rotation);
-  camera.position.copy(plane.position).add(offset);
+  if (!planeModel) return;
 
-  // Look forward along plane
-  const lookAt = new THREE.Vector3(1, 0, 0);
-  lookAt.applyEuler(plane.rotation);
-  lookAt.add(plane.position);
+  const offset = new THREE.Vector3(0,1,3).applyQuaternion(planeModel.quaternion);
+  camera.position.copy(planeModel.position).add(offset);
+  const lookAt = new THREE.Vector3(0,0,-10).applyQuaternion(planeModel.quaternion).add(planeModel.position);
   camera.lookAt(lookAt);
 }
 
 function updateHUD() {
   const hud = document.getElementById('hud');
-  hud.innerText = `Speed: ${planeVelocity.toFixed(1)} | Altitude: ${plane.position.y.toFixed(1)}`;
+  hud.innerText = `Speed: ${planeVelocity.toFixed(1)} | Altitude: ${planeModel ? planeModel.position.y.toFixed(1) : 0}`;
 }
-
 </script>
 </body>
 </html>
