@@ -1,142 +1,198 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Plane Simulator</title>
+<title>Aircraft Simulator</title>
+
 <style>
-  body { margin: 0; overflow: hidden; background: #87CEEB; }
-  #hud {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    color: white;
-    font-family: monospace;
-    background: rgba(0,0,0,0.3);
-    padding: 8px;
-    border-radius: 5px;
-  }
+body{margin:0;overflow:hidden;background:#87CEEB;}
+#hud{
+position:absolute;
+top:10px;
+left:10px;
+color:white;
+font-family:monospace;
+background:rgba(0,0,0,0.4);
+padding:8px;
+border-radius:6px;
+}
 </style>
+
 </head>
 <body>
-<div id="hud">Loading aircraft...</div>
+
+<div id="hud">Speed: 0 | Altitude: 0</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
-let scene, camera, renderer;
-let planeModel = null;            // Will hold our GLTF plane
-let planeVelocity = 0;
-let planePitch = 0, planeRoll = 0;
-let keys = {};
-let hud = document.getElementById('hud');
-let clock = new THREE.Clock();
 
-init();
-animate();
+let scene,camera,renderer
+let plane
+let velocity=0
+let pitch=0
+let roll=0
+let keys={}
+let clock=new THREE.Clock()
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87CEEB);
+init()
+animate()
 
-  // Camera
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+function init(){
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+scene=new THREE.Scene()
+scene.background=new THREE.Color(0x87CEEB)
 
-  // Lights
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambient);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.6);
-  directional.position.set(5,10,7);
-  scene.add(directional);
+camera=new THREE.PerspectiveCamera(
+75,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+)
 
-  // Ground so you can see movement
-  const groundGeo = new THREE.PlaneGeometry(500, 500);
-  const groundMat = new THREE.MeshStandardMaterial({color: 0x228B22});
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI/2;
-  scene.add(ground);
+renderer=new THREE.WebGLRenderer({antialias:true})
+renderer.setSize(window.innerWidth,window.innerHeight)
+document.body.appendChild(renderer.domElement)
 
-  // Load real airplane model
-  const loader = new THREE.GLTFLoader();
-  const modelURL = 'https://cdn.filer.dev/3d-model/2243156-airplane-n.glb'; 
+const ambient=new THREE.AmbientLight(0xffffff,0.7)
+scene.add(ambient)
 
-  loader.load(
-    modelURL,
-    (gltf) => {
-      planeModel = gltf.scene;
-      planeModel.scale.set(1.5,1.5,1.5);
-      scene.add(planeModel);
-      hud.innerText = 'Speed: 0 | Altitude: 0';
-      planeModel.position.set(0,5,0);  // start above ground
-    },
-    undefined,
-    (error) => {
-      console.error('Model load error', error);
-      hud.innerText = 'Failed to load plane model';
-    }
-  );
+const sun=new THREE.DirectionalLight(0xffffff,0.8)
+sun.position.set(50,100,20)
+scene.add(sun)
 
-  // Controls
-  window.addEventListener('keydown', (e) => keys[e.code] = true);
-  window.addEventListener('keyup', (e) => keys[e.code] = false);
+createPlane()
 
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+// ground
+const groundGeo=new THREE.PlaneGeometry(2000,2000)
+const groundMat=new THREE.MeshStandardMaterial({color:0x2f7d32})
+const ground=new THREE.Mesh(groundGeo,groundMat)
+ground.rotation.x=-Math.PI/2
+scene.add(ground)
+
+window.addEventListener("keydown",e=>keys[e.code]=true)
+window.addEventListener("keyup",e=>keys[e.code]=false)
+
+window.addEventListener("resize",()=>{
+camera.aspect=window.innerWidth/window.innerHeight
+camera.updateProjectionMatrix()
+renderer.setSize(window.innerWidth,window.innerHeight)
+})
+
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-  const delta = clock.getDelta();
+function createPlane(){
 
-  if (planeModel) {
-    handleControls(delta);
-    updateCamera();
-    updateHUD();
-  }
+plane=new THREE.Group()
 
-  renderer.render(scene, camera);
+// fuselage
+const bodyGeo=new THREE.CylinderGeometry(.3,.4,6,16)
+const bodyMat=new THREE.MeshStandardMaterial({color:0xdddddd})
+const body=new THREE.Mesh(bodyGeo,bodyMat)
+body.rotation.z=Math.PI/2
+plane.add(body)
+
+// nose
+const noseGeo=new THREE.ConeGeometry(.35,1,16)
+const nose=new THREE.Mesh(noseGeo,new THREE.MeshStandardMaterial({color:0x444444}))
+nose.rotation.z=-Math.PI/2
+nose.position.x=3.5
+plane.add(nose)
+
+// wings
+const wingGeo=new THREE.BoxGeometry(8,.15,1.5)
+const wing=new THREE.Mesh(wingGeo,new THREE.MeshStandardMaterial({color:0x888888}))
+plane.add(wing)
+
+// tail wing
+const tailWingGeo=new THREE.BoxGeometry(3,.1,.7)
+const tailWing=new THREE.Mesh(tailWingGeo,new THREE.MeshStandardMaterial({color:0x888888}))
+tailWing.position.x=-2.5
+plane.add(tailWing)
+
+// vertical tail
+const tailGeo=new THREE.BoxGeometry(.1,1.2,1)
+const tail=new THREE.Mesh(tailGeo,new THREE.MeshStandardMaterial({color:0x777777}))
+tail.position.set(-3,.7,0)
+plane.add(tail)
+
+// cockpit
+const cockpitGeo=new THREE.SphereGeometry(.45,16,16)
+const cockpit=new THREE.Mesh(
+cockpitGeo,
+new THREE.MeshStandardMaterial({color:0x222222})
+)
+cockpit.scale.set(1,.5,1)
+cockpit.position.set(1,.4,0)
+plane.add(cockpit)
+
+plane.position.y=5
+scene.add(plane)
+
 }
 
-function handleControls(delta) {
-  const throttleSpeed = 20;
-  const pitchSpeed = Math.PI;
-  const rollSpeed = Math.PI;
+function animate(){
 
-  if (keys['KeyW']) planeVelocity += throttleSpeed * delta;
-  if (keys['KeyS']) planeVelocity -= throttleSpeed * delta;
-  planeVelocity = Math.max(0, planeVelocity);
+requestAnimationFrame(animate)
 
-  if (keys['ArrowUp']) planePitch += pitchSpeed * delta;
-  if (keys['ArrowDown']) planePitch -= pitchSpeed * delta;
-  if (keys['KeyA']) planeRoll += rollSpeed * delta;
-  if (keys['KeyD']) planeRoll -= rollSpeed * delta;
+let delta=clock.getDelta()
 
-  planeModel.rotation.z = planeRoll;
-  planeModel.rotation.x = planePitch;
+handleControls(delta)
+updateCamera()
+updateHUD()
 
-  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(planeModel.quaternion);
-  planeModel.position.addScaledVector(dir, planeVelocity * delta);
+renderer.render(scene,camera)
+
 }
 
-function updateCamera() {
-  const offset = new THREE.Vector3(0,1.0,3).applyQuaternion(planeModel.quaternion);
-  camera.position.copy(planeModel.position).add(offset);
-  const lookAt = new THREE.Vector3(0,0,-10).applyQuaternion(planeModel.quaternion).add(planeModel.position);
-  camera.lookAt(lookAt);
+function handleControls(delta){
+
+const accel=25
+const rotSpeed=1.5
+
+if(keys["KeyW"]) velocity+=accel*delta
+if(keys["KeyS"]) velocity-=accel*delta
+
+velocity=Math.max(0,velocity)
+
+if(keys["ArrowUp"]) pitch+=rotSpeed*delta
+if(keys["ArrowDown"]) pitch-=rotSpeed*delta
+
+if(keys["KeyA"]) roll+=rotSpeed*delta
+if(keys["KeyD"]) roll-=rotSpeed*delta
+
+plane.rotation.z=roll
+plane.rotation.x=pitch
+
+let forward=new THREE.Vector3(1,0,0)
+forward.applyEuler(plane.rotation)
+
+plane.position.add(forward.multiplyScalar(velocity*delta))
+
 }
 
-function updateHUD() {
-  hud.innerText = `Speed: ${planeVelocity.toFixed(1)} | Alt: ${planeModel.position.y.toFixed(1)}`;
+function updateCamera(){
+
+let offset=new THREE.Vector3(-12,4,0)
+offset.applyEuler(plane.rotation)
+
+camera.position.copy(plane.position).add(offset)
+
+let look=new THREE.Vector3(5,0,0)
+look.applyEuler(plane.rotation)
+look.add(plane.position)
+
+camera.lookAt(look)
+
 }
+
+function updateHUD(){
+
+document.getElementById("hud").innerText=
+`Speed: ${velocity.toFixed(1)} | Altitude: ${plane.position.y.toFixed(1)}`
+
+}
+
 </script>
 </body>
 </html>
